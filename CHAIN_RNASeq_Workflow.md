@@ -513,43 +513,46 @@ ls *gtf > mergelist.txt
 ```
  nano samplelist.txt
  
- C17	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C17.gtf
- C18	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C18.gtf
- C19	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C19.gtf
- C20	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C20.gtf
- C21	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C21.gtf
- C22	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C22.gtf
- C23	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C23.gtf
- C24	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C24.gtf
- C25	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C25.gtf
- C26	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C26.gtf
- C27	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C27.gtf
- C28	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C28.gtf
- C29	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C29.gtf
- C30	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C30.gtf
- C31	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C31.gtf
- C32	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/C32.gtf
- E1		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E1.gtf
- E2		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E2.gtf
- E3		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E3.gtf
- E4		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E4.gtf
- E5		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E5.gtf
- E6		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E6.gtf
- E7		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E7.gtf
- E8		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E8.gtf
- E9		/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E9.gtf
- E10	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E10.gtf  
- E11	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E11.gtf     
- E12	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E12.gtf    
- E13	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E13.gtf    
- E14	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E14.gtf    
- E15	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E15.gtf  
- E16	/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/E16.gtf    
+G021_S1
+G023_S8
+G029_S15
+G024_S22
+G028_S29
+G048_S2
+G041_S9
+G053_S16
+G056_S23
+G060_S30
+G068_S3
+G066_S10
+G079_S17
+G077_S24
+G075_S35
+G088_S4
+G091_S11
+G096_S21
+G094_S25
+G085_S33
+R020_S5
+R004_S12
+R009_S19
+R003_S26
+R015_S32
+R023_S6
+R025_S13
+R038_S20
+R021_S27
+R026_S34
+R060_S7
+R049_S14
+R059_S18
+R048_S28
+R046_S31  
    
 f) Create gene matrix
 
 ```
-nano /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/GTFtoCounts.sh
+nano /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/GTFtoCounts.sh
 ```
 
 ```
@@ -559,7 +562,7 @@ nano /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/GTFtoCounts.sh
 #SBATCH --export=NONE
 #SBATCH --mem=500GB
 #SBATCH --account=putnamlab
-#SBATCH -D /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/raw
+#SBATCH -D /data/putnamlab/hputnam/CHAIN_RNASeq
 #SBATCH -p putnamlab
 #SBATCH --cpus-per-task=3
 
@@ -567,17 +570,17 @@ module load StringTie/1.3.5-foss-2018b
 module load Python/2.7.15-foss-2018b
 
 
-python prepDE.py  -i samplelist.txt -g Poc_gene_count_matrix.csv
+python prepDE.py  -i samplelist.txt -g CHAIN_gene_count_matrix.csv
 ```
 
 ```
-sbatch /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/GTFtoCounts.sh
+sbatch /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/GTFtoCounts.sh
 ```
 
 
 g) Secure-copy gene counts onto local computer
 
 ```
-scp jillashey@bluewaves.uri.edu:/data/putnamlab/jillashey/Francois_data/Florida/stringTie/Ofav/GTF_merge/gene_count_ofav_matrix.csv /Users/jillashey/Desktop/Putnamlab/Repositories/SedimentStress/SedimentStress/Output/DESeq2/star/
+
 ```
 
