@@ -397,11 +397,12 @@ sbatch /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/Hisat2_Sym_align2.sh
 
 ## Sort and convert sam to bam
 
+### Coral
+
 ```
 nano /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/SAMtoBAM.sh
 ```
 
-/data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/*.sam
 
 ```
 #!/bin/bash
@@ -410,15 +411,15 @@ nano /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/SAMtoBAM.sh
 #SBATCH --export=NONE
 #SBATCH --mem=500GB
 #SBATCH --account=putnamlab
-#SBATCH -D /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/raw
+#SBATCH -D /data/putnamlab/hputnam/CHAIN_RNASeq
 #SBATCH -p putnamlab
 #SBATCH --cpus-per-task=3
 
 module load SAMtools/1.9-foss-2018b
 
-for i in "C17" "C18" "C19" "C20" "C21" "C22" "C23" "C24" "C25" "C26" "C27" "C28" "C29" "C30" "C31" "C32" "E1" "E2" "E3" "E4" "E5" "E6" "E7" "E8" "E9" "E10" "E11" "E12" "E13" "E14" "E15" "E16"
+for i in "G021_S1" "G023_S8" "G029_S15" "G024_S22" "G028_S29" "G048_S2" "G041_S9" "G053_S16" "G056_S23" "G060_S30" "G068_S3" "G066_S10" "G079_S17" "G077_S24" "G075_S35" "G088_S4" "G091_S11" "G096_S21" "G094_S25" "G085_S33" "R020_S5" "R004_S12" "R009_S19" "R003_S26" "R015_S32" "R023_S6" "R025_S13" "R038_S20" "R021_S27" "R026_S34" "R060_S7" "R049_S14" "R059_S18" "R048_S28" "R046_S31"
 do
-samtools view -b -S /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/${i}.sam | samtools sort -o /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/${i}.sorted.bam -O bam
+samtools view -b -S /data/putnamlab/hputnam/CHAIN_RNASeq/mapped/${i}.sam | samtools sort -o /data/putnamlab/hputnam/CHAIN_RNASeq/mapped/${i}.sorted.bam -O bam
 done
 ```
 
@@ -426,9 +427,39 @@ done
 sbatch /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/SAMtoBAM.sh
 ```
 
+### Sym
+
+```
+nano /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/Sym_SAMtoBAM.sh
+```
+
+
+```
+#!/bin/bash
+#SBATCH -t 72:00:00
+#SBATCH --nodes=1 --ntasks-per-node=10
+#SBATCH --export=NONE
+#SBATCH --mem=500GB
+#SBATCH --account=putnamlab
+#SBATCH -D /data/putnamlab/hputnam/CHAIN_RNASeq
+#SBATCH --cpus-per-task=3
+
+module load SAMtools/1.9-foss-2018b
+
+for i in "G021_S1" "G023_S8" "G029_S15" "G024_S22" "G028_S29" "G048_S2" "G041_S9" "G053_S16" "G056_S23" "G060_S30" "G068_S3" "G066_S10" "G079_S17" "G077_S24" "G075_S35" "G088_S4" "G091_S11" "G096_S21" "G094_S25" "G085_S33" "R020_S5" "R004_S12" "R009_S19" "R003_S26" "R015_S32" "R023_S6" "R025_S13" "R038_S20" "R021_S27" "R026_S34" "R060_S7" "R049_S14" "R059_S18" "R048_S28" "R046_S31"
+do
+samtools view -b -S /data/putnamlab/hputnam/CHAIN_RNASeq/Sym_mapped/${i}_Sym.sam | samtools sort -o /data/putnamlab/hputnam/CHAIN_RNASeq/Sym_mapped/${i}.sorted.bam -O bam
+done
+```
+
+```
+sbatch /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/Sym_SAMtoBAM.sh
+```
+
 ### Remove Sam files to save space
 ```
-rm /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/*.sam
+rm /data/putnamlab/hputnam/CHAIN_RNASeq/mapped/*.sam
+rm /data/putnamlab/hputnam/CHAIN_RNASeq/Sym_mapped/*.sam
 
 ```
 
@@ -445,7 +476,7 @@ cd counts
 b) Assemble and estimate reads 
 
 ```
-nano /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/StringTie_Assemble.sh
+nano /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/Coral_StringTie_Assemble.sh
 ```
 
 ```
@@ -455,21 +486,21 @@ nano /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/StringTie_Assemb
 #SBATCH --export=NONE
 #SBATCH --mem=500GB
 #SBATCH --account=putnamlab
-#SBATCH -D /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/raw
+#SBATCH -D /data/putnamlab/hputnam/CHAIN_RNASeq
 #SBATCH -p putnamlab
 #SBATCH --cpus-per-task=3
 
 module load StringTie/1.3.5-foss-2018b
 
 
-for i in "C17" "C18" "C19" "C20" "C21" "C22" "C23" "C24" "C25" "C26" "C27" "C28" "C29" "C30" "C31" "C32" "E1" "E2" "E3" "E4" "E5" "E6" "E7" "E8" "E9" "E10" "E11" "E12" "E13" "E14" "E15" "E16"
+for i in "G021_S1" "G023_S8" "G029_S15" "G024_S22" "G028_S29" "G048_S2" "G041_S9" "G053_S16" "G056_S23" "G060_S30" "G068_S3" "G066_S10" "G079_S17" "G077_S24" "G075_S35" "G088_S4" "G091_S11" "G096_S21" "G094_S25" "G085_S33" "R020_S5" "R004_S12" "R009_S19" "R003_S26" "R015_S32" "R023_S6" "R025_S13" "R038_S20" "R021_S27" "R026_S34" "R060_S7" "R049_S14" "R059_S18" "R048_S28" "R046_S31"
 do
-stringtie /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/${i}.sorted.bam -p 48 -e -G /data/putnamlab/REFS/Pverr/Pver_genome_assembly_v1.0.gff3 -o /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/data/mapped/${i}.gtf 
+stringtie /data/putnamlab/hputnam/CHAIN_RNASeq/mapped/${i}.sorted.bam -p 48 -e -G /data/putnamlab/REFS/Pdam/GCF_003704095.1_ASM370409v1_genomic.gff -o /data/putnamlab/hputnam/CHAIN_RNASeq/mapped/${i}.gtf 
 done
 ```
 
 ```
-sbatch /data/putnamlab/hputnam/Becker_E5/RNASeq_Becker_E5/scripts/StringTie_Assemble.sh
+sbatch /data/putnamlab/hputnam/CHAIN_RNASeq/scripts/Coral_StringTie_Assemble.sh
 ```
 
 
