@@ -315,7 +315,7 @@ Sym.sig.num <- sum(DEG.sym.res$padj <0.05, na.rm=T)
 Sym.sig <- subset(DEG.sym.res, padj<0.05,)
 
 #subset list of sig transcripts from original count data
-Sym.sig.list <- data[which(rownames(Sym.data) %in% rownames(Sym.sig)),]
+Sym.sig.list <- Sym.data[which(rownames(Sym.data) %in% rownames(Sym.sig)),]
 
 write.csv(counts(Sym.sig.list), file="Output/Sym.DEG_5FDR.csv")
 
