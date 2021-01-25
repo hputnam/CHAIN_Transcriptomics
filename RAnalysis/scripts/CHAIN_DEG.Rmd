@@ -1,0 +1,204 @@
+---
+title: "CHAIN_Pacuta_Expression"
+author: "HM Putnam"
+date: "1/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## DEG analysis for P acuta exposed to 5 different nutrient conditions
+
+### Load libraries
+```{r}
+
+library(DESeq2)
+library(genefilter)
+library(RColorBrewer)
+library(pheatmap)
+library(ggplot2)
+
+#install.packages("fdrtool")
+library(fdrtool)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("tidyr")
+library(tidyr)
+library(ggplot2)
+
+#BiocManager::install("GSEABase")
+library(GSEABase)
+#BiocManager::install("pathview")
+#library("pathview")
+#BiocManager::install("rtracklayer")
+library("rtracklayer")
+#BiocManager::install("goseq")
+library("goseq")
+library("GO.db")
+#devtools::install_github("hms-dbmi/UpSetR")
+library("UpSetR")
+library(lattice)
+library(latticeExtra)
+library(IRanges)
+library(GenomicRanges)
+library(sqldf)
+library(rentrez)
+
+```
+
+## Load data
+
+
+```{r}
+CountData <- as.data.frame(read.csv(file= "data/CHAIN_host_gene_count_matrix.csv", sep=",", header = TRUE))
+head(CountData)
+rownames(CountData) <- CountData[,1]
+CountData <- CountData[,-1]
+
+```
+# Filter data for Proportion of samples over A counts
+```{r}
+###filtering values for PoverA
+#set filter values for PoverA, P percent of the samples have counts over A
+filt <- filterfun(pOverA(0.15,10))
+
+#create filter for the counts data
+tfil <- genefilter(CountData, filt)
+
+#identify transcripts to keep by count filter
+keep <- CountData[tfil,]
+
+#identify transcript list
+gn.keep <- rownames(keep)
+
+counts.10x <- as.matrix(CountData[which(rownames(CountData) %in% gn.keep),])
+write.csv(counts.10x, file="output/filtered_counts_85_10.csv")
+
+```
+
+# read in sample information
+```{r}
+sample.info <- read.csv("data/CHAIN_sample.info.csv", header=TRUE, sep=",")
+head(sample.info)
+
+rownames(sample.info) <- sample.info[,1]
+sample.info <- sample.info[,-1]
+
+# Check all sample IDs in sample info are also in CountData and match their orders
+all(rownames(sample.info) %in% colnames(counts.10x))  #Should return TRUE
+# returns TRUE
+all(rownames(sample.info) == colnames(counts.10x))    # should return TRUE
+#returns TRUE
+
+```
+# Generate DESeq dataset and plot all expression
+```{r}
+#### Construct DESeq dataset from matrix
+data <- DESeqDataSetFromMatrix(countData = counts.10x, colData = sample.info, design = ~ Nutrient.Level) #create a DESeqDataSet object
+
+#apply a regularized log transformation to minimize effects of small counts and normalize wrt library size
+rld <- rlog(data, blind=FALSE)
+head(assay(rld), 3) #view data
+
+#calculate distance matix
+sampleDists <- dist(t(assay(rld)))
+
+#distance matrix
+sampleDistMatrix <- as.matrix(sampleDists)
+
+#assign row names
+rownames(sampleDistMatrix) <- colnames(rld)
+
+#assign col names
+colnames(sampleDistMatrix) <- NULL
+
+#assign colors
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+
+
+#### Plotting heatmap for Expression Visualization
+
+pdf(file="output/heatmap_all.pdf")
+pheatmap(sampleDistMatrix, #plot matrix of expression similarity
+         clustering_distance_rows=sampleDists, #cluster rows
+         clustering_distance_cols=sampleDists, #cluster columns
+         col=colors) #set colors
+dev.off()
+
+#### Plotting PCA from Expression visualization
+
+pdf(file="output/PCA_all.pdf")
+plotPCA(rld, intgroup = c("Nutrient.Level")) #plot PCA of samples with all data
+dev.off()
+
+```
+# Differential Gene Expression Analysis
+```{r}
+#run differential expression test by group using the wald test
+DEG.int <- DESeq(data)
+
+#save DE results
+DEG.int.res <- results(DEG.int)
+
+# Volcano Plot (significance as a function of fold change)
+par(mar=c(5,5,5,5), cex=1.0, cex.main=1.4, cex.axis=1.4, cex.lab=1.4)
+
+topT <- as.data.frame(DEG.int.res)
+
+#Adjusted P values (FDR Q values)
+with(topT, plot(log2FoldChange, -log10(padj), pch=20, main="Volcano plot", cex=1.0, xlab=bquote(~Log[2]~fold~change), ylab=bquote(~-log[10]~Q~value (pajd))))
+
+#Color the significant points with log2 fold change >2 red ()
+with(subset(topT, padj<0.05 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(padj), pch=20, col="red", cex=0.5))
+
+#Add lines for absolute FC>2
+abline(v=0, col="black", lty=3, lwd=1.0)
+abline(v=-2, col="black", lty=4, lwd=2.0)
+abline(v=2, col="black", lty=4, lwd=2.0)
+#abline(h=-log10(max(topT$pvalue[topT$padj<0.05], na.rm=TRUE)), col="black", lty=4, lwd=2.0)
+
+#view DE results
+resultsNames(DEG.int)
+
+log2_changes <- DEG.int.res[,c(2,6)]
+
+#identify the number of significant p values with 5%FDR (padj<0.05)
+sig.num <- sum(DEG.int.res$padj <0.05, na.rm=T)
+
+#identify signficant pvalues with 5%FDR
+sig <- subset(DEG.int.res, padj<0.05,)
+
+#subset list of sig transcripts from original count data
+sig.list <- data[which(rownames(data) %in% rownames(sig)),]
+
+write.csv(counts(sig.list), file="Output/DEG_5FDR.csv")
+
+```
+
+#Plot DEG
+```{r}
+#apply a regularized log transformation to minimize effects of small counts and normalize wrt library size
+rsig <- rlog(sig.list, blind=FALSE)
+PCA.plot.Nut.Col <- plotPCA(rsig, intgroup = c("Colony.ID", "Nutrient.Level")) #Plot PCA of all samples for DEG only
+PCA.plot.Nut.Col #view plot
+PCA.plot.Nut <- plotPCA(rsig, intgroup = c("Nutrient.Level")) #Plot PCA of all samples for DEG only
+pdf(file="output/DEG_PCA.pdf")
+PCA.plot.Nut #view plot
+dev.off()
+
+# Heatmap 
+#make an expression object
+#difference in expression compared to average across all samples
+mat <- assay(rsig)
+mat <- mat - rowMeans(mat)
+df <- data.frame(colData(rsig)[c("Nutrient.Level", "Colony.ID")])
+
+pdf(file="output/DEG_Heatmap.pdf")
+pheatmap(mat, annotation_col = df, clustering_method = "average",
+                clustering_distance_rows="euclidean", show_rownames =FALSE, cluster_cols=TRUE,
+                show_colnames =TRUE) #plot heatmap of all DEG by group
+dev.off()
+
+```
