@@ -48,9 +48,7 @@ library(ggplot2)
 
 ```
 
-## Load data
-
-
+## Load Host data
 ```{r}
 CountData <- as.data.frame(read.csv(file= "data/CHAIN_host_gene_count_matrix.csv", sep=",", header = TRUE))
 head(CountData)
@@ -197,6 +195,152 @@ df <- data.frame(colData(rsig)[c("Nutrient.Level", "Colony.ID")])
 
 pdf(file="output/DEG_Heatmap.pdf")
 pheatmap(mat, annotation_col = df, clustering_method = "average",
+                clustering_distance_rows="euclidean", show_rownames =FALSE, cluster_cols=TRUE,
+                show_colnames =TRUE) #plot heatmap of all DEG by group
+dev.off()
+
+```
+
+## Load Sym data
+```{r}
+SymCountData <- as.data.frame(read.csv(file= "data/CHAIN_sym_gene_count_matrix.csv", sep=",", header = TRUE))
+head(SymCountData)
+rownames(SymCountData) <- SymCountData[,1]
+SymCountData <- SymCountData[,-1]
+
+```
+
+# Filter Sym data for Proportion of samples over A counts
+```{r}
+###filtering values for PoverA
+#set filter values for PoverA, P percent of the samples have counts over A
+filt <- filterfun(pOverA(0.15,10))
+
+#create filter for the counts data
+tfil <- genefilter(SymCountData, filt)
+
+#identify transcripts to keep by count filter
+keep <- SymCountData[tfil,]
+
+#identify transcript list
+gn.keep <- rownames(keep)
+
+Sym.counts.10x <- as.matrix(SymCountData[which(rownames(SymCountData) %in% gn.keep),])
+write.csv(Sym.counts.10x, file="output/Sym_filtered_counts_15_10.csv")
+
+# Check all sample IDs in sample info are also in CountData and match their orders
+all(rownames(sample.info) %in% colnames(Sym.counts.10x))  #Should return TRUE
+# returns TRUE
+all(rownames(sample.info) == colnames(Sym.counts.10x))    # should return TRUE
+#returns TRUE
+
+```
+
+# Generate Sym DESeq dataset and plot all expression
+```{r}
+#### Construct DESeq dataset from matrix
+Sym.data <- DESeqDataSetFromMatrix(countData = Sym.counts.10x, colData = sample.info, design = ~ Nutrient.Level) #create a DESeqDataSet object
+
+#apply a regularized log transformation to minimize effects of small counts and normalize wrt library size
+Sym.rld <- rlog(Sym.data, blind=FALSE)
+head(assay(Sym.rld), 3) #view data
+
+#calculate distance matix
+Sym.sampleDists <- dist(t(assay(Sym.rld)))
+
+#distance matrix
+Sym.sampleDistMatrix <- as.matrix(Sym.sampleDists)
+
+#assign row names
+rownames(Sym.sampleDistMatrix) <- colnames(Sym.rld)
+
+#assign col names
+colnames(Sym.sampleDistMatrix) <- NULL
+
+#assign colors
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+
+
+#### Plotting heatmap for Expression Visualization
+
+pdf(file="output/Sym.heatmap_all.pdf")
+pheatmap(Sym.sampleDistMatrix, #plot matrix of expression similarity
+         clustering_distance_rows=Sym.sampleDists, #cluster rows
+         clustering_distance_cols=Sym.sampleDists, #cluster columns
+         col=colors) #set colors
+dev.off()
+
+#### Plotting PCA from Expression visualization
+
+pdf(file="output/Sym.PCA_all.pdf")
+plotPCA(Sym.rld, intgroup = c("Nutrient.Level")) #plot PCA of samples with all data
+dev.off()
+
+```
+
+# Differential Gene Expression Analysis
+```{r}
+#run differential expression test by group using the wald test
+DEG.sym <- DESeq(Sym.data)
+
+#save DE results
+DEG.sym.res <- results(DEG.sym)
+
+# Volcano Plot (significance as a function of fold change)
+par(mar=c(5,5,5,5), cex=1.0, cex.main=1.4, cex.axis=1.4, cex.lab=1.4)
+
+topT <- as.data.frame(DEG.sym.res)
+
+#Adjusted P values (FDR Q values)
+with(topT, plot(log2FoldChange, -log10(padj), pch=20, main="Volcano plot", cex=1.0, xlab=bquote(~Log[2]~fold~change), ylab=bquote(~-log[10]~Q~value (pajd))))
+
+#Color the significant points with log2 fold change >2 red ()
+with(subset(topT, padj<0.05 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(padj), pch=20, col="red", cex=0.5))
+
+#Add lines for absolute FC>2
+abline(v=0, col="black", lty=3, lwd=1.0)
+abline(v=-2, col="black", lty=4, lwd=2.0)
+abline(v=2, col="black", lty=4, lwd=2.0)
+#abline(h=-log10(max(topT$pvalue[topT$padj<0.05], na.rm=TRUE)), col="black", lty=4, lwd=2.0)
+
+#view DE results
+resultsNames(DEG.sym)
+
+log2_changes <- DEG.sym.res[,c(2,6)]
+
+#identify the number of significant p values with 5%FDR (padj<0.05)
+Sym.sig.num <- sum(DEG.sym.res$padj <0.05, na.rm=T)
+
+#identify signficant pvalues with 5%FDR
+Sym.sig <- subset(DEG.sym.res, padj<0.05,)
+
+#subset list of sig transcripts from original count data
+Sym.sig.list <- data[which(rownames(Sym.data) %in% rownames(Sym.sig)),]
+
+write.csv(counts(Sym.sig.list), file="Output/Sym.DEG_5FDR.csv")
+
+```
+
+#Plot Sym DEG
+```{r}
+#apply a regularized log transformation to minimize effects of small counts and normalize wrt library size
+Sym.rsig <- rlog(Sym.sig.list, blind=FALSE)
+Sym.PCA.plot.Nut.Col <- plotPCA(Sym.rsig, intgroup = c("Colony.ID", "Nutrient.Level")) #Plot PCA of all samples for DEG only
+Sym.PCA.plot.Nut.Col #view plot
+Sym.PCA.plot.Nut <- plotPCA(Sym.rsig, intgroup = c("Nutrient.Level")) #Plot PCA of all samples for DEG only
+pdf(file="output/Sym.DEG_PCA.pdf")
+Sym.PCA.plot.Nut #view plot
+dev.off()
+
+# Heatmap 
+#make an expression object
+#difference in expression compared to average across all samples
+Sym.mat <- assay(Sym.rsig)
+Sym.mat <- Sym.mat - rowMeans(Sym.mat)
+Sym.df <- data.frame(colData(Sym.rsig)[c("Nutrient.Level", "Colony.ID")])
+
+pdf(file="output/Sym.DEG_Heatmap.pdf")
+pheatmap(Sym.mat, annotation_col = Sym.df, clustering_method = "average",
                 clustering_distance_rows="euclidean", show_rownames =FALSE, cluster_cols=TRUE,
                 show_colnames =TRUE) #plot heatmap of all DEG by group
 dev.off()
